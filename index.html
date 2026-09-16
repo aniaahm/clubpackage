@@ -1,1100 +1,606 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ania's Digi Mail Club — Your Package</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
-<style>
-/* ============================================================================
-   DESIGN TOKENS
-   ============================================================================ */
-:root{
-  --cream:#F4EBE1;
-  --cardboard-light:#D8B284;
-  --cardboard-dark:#C69C6D;
-  --cardboard-shadow:#A9805B;
-  --ink:#2A2A2A;
-  --stamp-red:#C84B31;
-  --tape:rgba(238,225,201,0.55);
-  --tape-edge:rgba(160,130,95,0.55);
-  --paper:#FFFDF8;
-  --paper-line:#E7DCCB;
-
-  --font-type:'Courier Prime', monospace;
-  --font-serif:'Libre Baskerville', serif;
-  --font-hand:'Caveat', cursive;
-}
-
-*{box-sizing:border-box;}
-html{scroll-behavior:smooth;}
-body{
-  margin:0;
-  min-height:100vh;
-  background:
-    radial-gradient(circle at 15% 10%, rgba(255,255,255,0.35), transparent 45%),
-    var(--cream);
-  color:var(--ink);
-  font-family:var(--font-type);
-  overflow-x:hidden;
-}
-
-button{font-family:inherit;cursor:pointer;}
-
-/* subtle grain/paper texture overlay so nothing feels flat */
-body::before{
-  content:"";
-  position:fixed;inset:0;
-  pointer-events:none;
-  background-image:radial-gradient(rgba(42,42,42,0.035) 1px, transparent 1px);
-  background-size:3px 3px;
-  z-index:1;
-  opacity:0.6;
-}
-
-.scene{
-  position:relative;
-  width:100%;
-  min-height:100vh;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  flex-direction:column;
-  padding:40px 20px 80px;
-}
-.scene.active{display:flex;}
-
-/* ============================================================================
-   SCENE 1 — THE UNOPENED PACKAGE
-   ============================================================================ */
-.package-wrap{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:34px;
-  z-index:2;
-}
-
-.parcel{
-  perspective:1200px;
-}
-
-.parcel-box{
-  position:relative;
-  width:min(78vw, 340px);
-  aspect-ratio:1/1;
-  background:
-    repeating-linear-gradient(115deg, rgba(0,0,0,0.05) 0 2px, transparent 2px 10px),
-    linear-gradient(155deg, var(--cardboard-light), var(--cardboard-dark) 70%);
-  border-radius:6px;
-  box-shadow:
-    0 18px 0 -6px var(--cardboard-shadow),
-    0 24px 40px rgba(75,55,30,0.35);
-  transition:transform 0.5s ease;
-}
-
-/* corrugated cardboard edge lines */
-.parcel-box::before{
-  content:"";
-  position:absolute; inset:10px;
-  border:2px solid rgba(90,62,32,0.18);
-  border-radius:3px;
-  pointer-events:none;
-}
-
-/* top flaps, hinged at the box edge, open like a real box lid */
-.flap{
-  position:absolute;
-  top:-2px; width:52%; height:38%;
-  background:linear-gradient(180deg, var(--cardboard-light), var(--cardboard-dark));
-  border:2px solid rgba(90,62,32,0.18);
-  transform-origin:top center;
-  transition:transform 0.7s cubic-bezier(.6,-0.1,.35,1.4);
-  z-index:3;
-}
-.flap-left{ left:-2px; border-radius:3px 0 12px 30%; transform:rotateX(0deg);}
-.flap-right{ right:-2px; border-radius:0 3px 30% 12px; transform:rotateX(0deg) scaleX(-1);}
-
-.parcel.opening .flap-left{ transform:rotateX(150deg) translateY(-6px); }
-.parcel.opening .flap-right{ transform:rotateX(150deg) scaleX(-1) translateY(-6px); }
-.parcel.opening .parcel-box{ transform: translateY(10px) scale(0.98); }
-
-/* packaging tape running down the middle */
-.tape-vertical{
-  position:absolute; left:50%; top:-6px; bottom:-6px;
-  width:15%; transform:translateX(-50%);
-  background:var(--tape);
-  border-left:2px dashed var(--tape-edge);
-  border-right:2px dashed var(--tape-edge);
-  z-index:4;
-  transition:transform 0.6s ease, opacity 0.5s ease;
-}
-.parcel.opening .tape-vertical{ transform:translateX(-50%) scaleY(0.4); opacity:0; }
-
-/* the shipping label sits on top of the box, tucked under the tape */
-.shipping-label{
-  position:absolute;
-  left:50%; top:50%;
-  transform:translate(-50%,-50%) rotate(-1.2deg);
-  width:78%;
-  background:var(--paper);
-  border:2px solid var(--ink);
-  border-radius:2px;
-  padding:14px 14px 10px;
-  z-index:2;
-  box-shadow:0 6px 14px rgba(0,0,0,0.18);
-  transition:opacity 0.4s ease, transform 0.5s ease;
-}
-.parcel.opening .shipping-label{ opacity:0; transform:translate(-50%,-50%) rotate(-1.2deg) scale(0.9); }
-
-.label-header{
-  font-family:var(--font-type);
-  font-weight:700;
-  font-size:0.72rem;
-  letter-spacing:0.08em;
-  text-align:center;
-  border-bottom:1px dashed var(--ink);
-  padding-bottom:6px;
-  margin-bottom:6px;
-}
-.label-month{
-  font-family:var(--font-serif);
-  font-style:italic;
-  text-align:center;
-  font-size:0.85rem;
-  margin-bottom:8px;
-}
-.label-row{
-  font-size:0.68rem;
-  line-height:1.5;
-  margin-bottom:2px;
-}
-.label-row b{font-weight:700;}
-
-.stamp-badge{
-  position:absolute;
-  top:-14px; right:-10px;
-  width:88px; height:88px;
-  border-radius:50%;
-  border:2.5px solid var(--stamp-red);
-  color:var(--stamp-red);
-  display:flex; align-items:center; justify-content:center;
-  text-align:center;
-  font-size:0.5rem;
-  font-weight:700;
-  letter-spacing:0.02em;
-  line-height:1.15;
-  padding:8px;
-  transform:rotate(14deg);
-  background:rgba(200,75,49,0.04);
-  text-transform:lowercase;
-  font-family:var(--font-type);
-}
-
-.barcode-block{margin-top:8px;text-align:center;}
-.barcode-bars{
-  display:flex; align-items:flex-end; justify-content:center;
-  height:26px; gap:1px; margin-bottom:2px;
-}
-.barcode-bars span{ display:inline-block; background:var(--ink); height:100%; }
-.tracking-number{
-  font-size:0.62rem; letter-spacing:0.08em;
-  cursor:default;
-  user-select:none;
-}
-
-.open-btn{
-  font-family:var(--font-type);
-  font-weight:700;
-  font-size:0.95rem;
-  letter-spacing:0.03em;
-  background:var(--paper);
-  color:var(--ink);
-  border:2px solid var(--ink);
-  border-radius:30px;
-  padding:14px 32px;
-  box-shadow:3px 3px 0 var(--ink);
-  transition:transform 0.15s ease, box-shadow 0.15s ease, opacity 0.3s ease;
-}
-.open-btn:hover{ transform:translate(-2px,-2px); box-shadow:5px 5px 0 var(--ink); }
-.open-btn:active{ transform:translate(0,0); box-shadow:1px 1px 0 var(--ink); }
-.parcel-wrap.hide-btn .open-btn{opacity:0; pointer-events:none;}
-
-/* scatter layer: little goodies that pop out during opening */
-#scatter-layer{
-  position:absolute; inset:0;
-  pointer-events:none;
-  z-index:5;
-}
-.scatter-item{
-  position:absolute;
-  left:50%; top:44%;
-  font-size:2rem;
-  opacity:0;
-  transform:translate(-50%,-50%) scale(0.4) rotate(0deg);
-  transition:transform 1s cubic-bezier(.2,.8,.2,1), opacity 0.9s ease;
-}
-.scatter-item.fly{
-  opacity:1;
-  transform:translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1) rotate(var(--rot));
-}
-.scatter-item.settle{ opacity:0; }
-
-/* ============================================================================
-   SCENE 2 — YOUR LITTLE BOX OF GOODIES
-   ============================================================================ */
-.goodies-title{
-  font-family:var(--font-serif);
-  font-style:italic;
-  font-size:clamp(1.7rem, 4vw, 2.4rem);
-  margin:0 0 4px;
-  text-align:center;
-}
-.goodies-sub{
-  font-size:0.85rem;
-  color:#5c5347;
-  margin-bottom:34px;
-  text-align:center;
-}
-
-.goodies-grid{
-  width:100%;
-  max-width:1080px;
-  display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(250px, 1fr));
-  gap:36px 28px;
-  z-index:2;
-}
-
-.goodie-card{
-  position:relative;
-  background:var(--paper);
-  border:1px solid var(--paper-line);
-  border-radius:3px;
-  padding:20px 18px 22px;
-  box-shadow:0 10px 22px rgba(75,55,30,0.14);
-  transform:rotate(var(--tilt, -1.2deg));
-  transition:transform 0.25s ease, box-shadow 0.25s ease;
-}
-.goodie-card:hover{ transform:rotate(0deg) translateY(-3px); box-shadow:0 16px 28px rgba(75,55,30,0.2); }
-.goodie-card:nth-child(3n+1){--tilt:-1.6deg;}
-.goodie-card:nth-child(3n+2){--tilt:1.3deg;}
-.goodie-card:nth-child(3n){--tilt:-0.6deg;}
-
-/* translucent tape holding each card down */
-.card-tape{
-  position:absolute; top:-10px; left:50%;
-  width:70px; height:26px;
-  transform:translateX(-50%) rotate(-3deg);
-  background:repeating-linear-gradient(100deg, var(--tape) 0 6px, rgba(238,225,201,0.4) 6px 12px);
-  border-left:1px dashed var(--tape-edge);
-  border-right:1px dashed var(--tape-edge);
-  opacity:0.9;
-}
-
-.goodie-kicker{
-  font-size:0.62rem; letter-spacing:0.05em; color:#8a7c68;
-  margin-bottom:6px;
-}
-.goodie-title{
-  font-family:var(--font-serif);
-  font-size:1.15rem;
-  margin:0 0 8px;
-}
-.goodie-desc{
-  font-size:0.82rem; line-height:1.5; color:#3d372e; margin:0 0 12px;
-}
-.goodie-note{
-  font-family:var(--font-hand);
-  font-size:1.35rem; line-height:1.35;
-  color:var(--ink);
-  white-space:pre-wrap;
-  margin:6px 0 4px;
-}
-.goodie-image{
-  width:100%; border-radius:2px; margin-bottom:10px; display:block;
-  border:1px solid var(--paper-line);
-}
-
-.goodie-btn{
-  display:inline-flex; align-items:center; gap:6px;
-  font-family:var(--font-type); font-weight:700; font-size:0.72rem;
-  letter-spacing:0.03em;
-  background:var(--cream);
-  border:1.5px solid var(--ink);
-  border-radius:20px;
-  padding:8px 16px;
-  color:var(--ink);
-  text-decoration:none;
-  transition:transform 0.15s ease;
-}
-.goodie-btn:hover{ transform:translateY(-2px); }
-
-.photocard-grid{
-  display:grid;
-  grid-template-columns:repeat(3, 1fr);
-  gap:6px;
-  margin-bottom:10px;
-}
-.photocard-thumb{
-  width:100%; aspect-ratio:1/1.2; object-fit:cover;
-  border-radius:2px; border:1px solid var(--paper-line);
-  cursor:zoom-in;
-  transition:transform 0.15s ease;
-}
-.photocard-thumb:hover{ transform:scale(1.04); }
-
-.custom-list{ margin:0 0 10px; padding-left:18px; font-size:0.82rem; line-height:1.6; }
-
-/* ============================================================================
-   PHOTOCARD / IMAGE MODAL (LIGHTBOX)
-   ============================================================================ */
-.modal-overlay{
-  position:fixed; inset:0;
-  background:rgba(20,16,10,0.78);
-  display:none;
-  align-items:center; justify-content:center;
-  z-index:100;
-  padding:24px;
-}
-.modal-overlay.open{display:flex;}
-.modal-box{
-  position:relative;
-  max-width:min(88vw, 480px);
-  text-align:center;
-}
-.modal-box img{
-  width:100%; max-height:74vh; object-fit:contain;
-  border:4px solid var(--paper);
-  border-radius:2px;
-  background:var(--paper);
-}
-#modal-close{
-  position:absolute; top:-38px; right:0;
-  background:none; border:none; color:var(--paper);
-  font-size:1.8rem; line-height:1;
-}
-.modal-nav{
-  margin-top:12px; display:flex; align-items:center; justify-content:center; gap:18px;
-  color:var(--paper); font-family:var(--font-type); font-size:0.85rem;
-}
-.modal-nav button{
-  background:none; border:1.5px solid var(--paper); color:var(--paper);
-  border-radius:50%; width:34px; height:34px; font-size:1rem;
-}
-
-/* ============================================================================
-   SECRET ADMIN DOOR
-   ============================================================================ */
-#admin-trigger{
-  position:fixed; bottom:10px; right:10px;
-  width:26px; height:26px;
-  z-index:50;
-  cursor:default;
-  /* intentionally invisible — this is the "secret door".
-     Click it 5 times in a row to summon the admin panel. */
-}
-
-.admin-overlay{
-  position:fixed; inset:0;
-  background:rgba(20,16,10,0.6);
-  display:none;
-  align-items:flex-start; justify-content:center;
-  overflow-y:auto;
-  z-index:200;
-  padding:40px 16px;
-}
-.admin-overlay.open{display:flex;}
-.admin-panel{
-  background:var(--paper);
-  border:2px solid var(--ink);
-  border-radius:6px;
-  max-width:640px; width:100%;
-  padding:26px 24px 32px;
-  box-shadow:0 20px 40px rgba(0,0,0,0.3);
-}
-.admin-panel h2{ font-family:var(--font-serif); margin-top:0; }
-.admin-panel h3{ font-family:var(--font-serif); font-size:1rem; margin:22px 0 8px; border-top:1px dashed var(--paper-line); padding-top:16px;}
-.admin-field{ margin-bottom:12px; }
-.admin-field label{ display:block; font-size:0.72rem; font-weight:700; margin-bottom:4px; letter-spacing:0.02em;}
-.admin-field input, .admin-field select, .admin-field textarea{
-  width:100%; font-family:var(--font-type); font-size:0.85rem;
-  padding:8px 10px; border:1.5px solid var(--ink); border-radius:3px; background:#fff;
-}
-.admin-field textarea{ min-height:70px; resize:vertical; }
-.admin-item-block{
-  border:1px solid var(--paper-line); border-radius:4px; padding:14px; margin-bottom:14px; background:#fffefb;
-}
-.admin-item-block .admin-item-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
-.admin-item-block .admin-item-head span{font-weight:700; font-size:0.78rem;}
-.admin-btn{
-  font-family:var(--font-type); font-weight:700; font-size:0.75rem;
-  border:1.5px solid var(--ink); background:var(--cream); border-radius:20px;
-  padding:8px 16px; margin:4px 6px 4px 0;
-}
-.admin-btn.danger{ background:#f6e2dd; border-color:var(--stamp-red); color:var(--stamp-red); }
-.admin-btn.primary{ background:var(--ink); color:var(--paper); }
-.admin-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:16px; }
-.admin-export{ width:100%; min-height:160px; font-family:var(--font-type); font-size:0.72rem; margin-top:10px; }
-.admin-passcode-gate{ text-align:center; padding:20px 0; }
-
-/* ============================================================================
-   RESPONSIVE
-   ============================================================================ */
-@media (max-width: 480px){
-  .goodies-grid{ grid-template-columns:1fr; }
-  .stamp-badge{ width:74px; height:74px; font-size:0.44rem; }
-}
-
-@media (prefers-reduced-motion: reduce){
-  *{ transition-duration:0.01ms !important; animation-duration:0.01ms !important; }
-}
-</style>
-</head>
-<body>
-
-<div id="app">
-
-  <!-- ============== SCENE 1: THE UNOPENED PACKAGE ============== -->
-  <section id="package-scene" class="scene active">
-    <div class="package-wrap" id="parcel-wrap">
-      <div class="parcel" id="parcel">
-        <div id="scatter-layer"></div>
-        <div class="parcel-box">
-          <div class="flap flap-left"></div>
-          <div class="flap flap-right"></div>
-          <div class="shipping-label" id="shipping-label">
-            <div class="label-header">DIGITAL CARE PACKAGE</div>
-            <div class="label-month" id="label-month"></div>
-            <div class="label-row"><b>TO:</b> <span id="label-to"></span></div>
-            <div class="label-row"><b>FROM:</b> <span id="label-from"></span></div>
-            <div class="barcode-block">
-              <div class="barcode-bars" id="barcode-bars"></div>
-              <div class="tracking-number" id="label-tracking"></div>
-            </div>
-            <div class="stamp-badge">to be delivered<br>with care<br>&amp; love</div>
-          </div>
-          <div class="tape-vertical"></div>
-        </div>
-      </div>
-      <button class="open-btn" id="open-btn">OPEN YOUR PACKAGE ♡</button>
-    </div>
-  </section>
-
-  <!-- ============== SCENE 2: YOUR LITTLE BOX OF GOODIES ============== -->
-  <section id="goodies-scene" class="scene">
-    <h1 class="goodies-title">your little box of goodies</h1>
-    <p class="goodies-sub" id="goodies-sub">everything packed for you this month</p>
-    <div class="goodies-grid" id="goodies-grid"></div>
-  </section>
-
-</div>
-
-<!-- Photocard / image lightbox -->
-<div class="modal-overlay" id="modal-overlay">
-  <div class="modal-box">
-    <button id="modal-close">&times;</button>
-    <img id="modal-img" src="" alt="">
-    <div class="modal-nav">
-      <button id="modal-prev">‹</button>
-      <span id="modal-count"></span>
-      <button id="modal-next">›</button>
-    </div>
-  </div>
-</div>
-
-<!-- The secret door: click this invisible corner spot 5x to open admin -->
-<div id="admin-trigger"></div>
-
-<!-- Admin panel -->
-<div class="admin-overlay" id="admin-overlay">
-  <div class="admin-panel" id="admin-panel">
-    <!-- filled in by JS: passcode gate first, then the editor -->
-  </div>
-</div>
-
+<head><script data-fc-sentry-user>(function(){var id="23017159-2022-4f0c-bfd7-ecc94402ccae";var plan="free";window.__LWW_USER_ID__=id;window.__LWW_USER_PLAN__=plan;function apply(){try{if(typeof window.__LWW_setSentryUser==="function"){window.__LWW_setSentryUser(id);return}if(window.Sentry&&window.Sentry.setUser){if(id){window.Sentry.setUser({id:id});window.Sentry.setTag&&window.Sentry.setTag("auth_state","authenticated");if(plan){window.Sentry.setTag&&window.Sentry.setTag("user_plan",plan)}}else{window.Sentry.setUser(null);window.Sentry.setTag&&window.Sentry.setTag("auth_state","anonymous")}}}catch(e){}}apply();setTimeout(apply,0);setTimeout(apply,1000)})();</script><script data-fc-saved-feedback>(function(){var links="https://littleweb.world/my-links?tab=saved";function clean(){try{var u=new URL(location.href);if(!u.searchParams.has("saved"))return null;var s=u.searchParams.get("saved");u.searchParams.delete("saved");var next=u.pathname+u.search+u.hash;if(history.replaceState)history.replaceState(null,"",next);return s}catch(e){return null}}function show(s){if(s!=="1"&&s!=="0")return;if(document.getElementById("fc-saved-toast"))return;var t=document.createElement("div");t.id="fc-saved-toast";t.setAttribute("role","status");t.setAttribute("aria-live","polite");if(s==="1"){t.appendChild(document.createTextNode("Saved to "));var a=document.createElement("a");a.href=links;a.textContent="Your Little Links";t.appendChild(a)}else{t.className="is-err";t.textContent="Couldn’t save that link. Try again."}(document.body||document.documentElement).appendChild(t);requestAnimationFrame(function(){t.classList.add("is-visible")});setTimeout(function(){t.classList.remove("is-visible");setTimeout(function(){t.remove()},320)},3200)}function run(){show(clean())}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run);else run()})();</script><script data-fc-upgrade-redirect>(function(){var apexOrigin="https://littleweb.world";var DEFAULT_BODY="Get A Little Key to keep going.";var ONE_LINK_SLUGS=["boxofgoodies","usb"];var ONE_LINK_LABEL="Generate This Link - 99¢";var ONE_LINK_LITTLE_KEY_LABEL="Get A Little Key - $4.99";var ONE_LINK_INTRO="Generate link with a one-time purchase, or get A Little Key to unlock all of Little Web World’s premium websites with unlimited usage.";var RESUME="fc_one_link";function returnNext(upgradeUrl){try{var u=new URL(upgradeUrl,location.href);var n=u.searchParams.get("next");if(n&&String(n).trim())return String(n).trim()}catch(e){}try{return location.href}catch(e2){return"/"}}function appFrom(upgradeUrl){try{var u=new URL(upgradeUrl,location.href);var app=(u.searchParams.get("app")||"").trim().toLowerCase();return ONE_LINK_SLUGS.indexOf(app)===-1?"":app}catch(e){return""}}function startCheckout(upgradeUrl,btn,kind){var next=returnNext(upgradeUrl);var label=btn?btn.textContent:"";if(btn){btn.disabled=true;btn.textContent="Opening Stripe…";btn.setAttribute("aria-busy","true")}function fail(msg){if(btn){btn.disabled=false;btn.textContent=label||"Get A Little Key";btn.removeAttribute("aria-busy")}var old=document.getElementById("fc-upgrade-checkout-err");if(old)old.remove();var e=document.createElement("p");e.id="fc-upgrade-checkout-err";e.className="fc-upgrade-error";e.setAttribute("role","alert");e.textContent=msg||"Checkout couldn’t start. Try again.";var card=document.querySelector("#fc-upgrade-modal .fc-upgrade-card");if(card)card.appendChild(e)}function go(url){window.location.assign(url)}var endpoint=kind==="one_link"?"/api/stripe/checkout/one-link":"/api/stripe/checkout";var body=kind==="one_link"?{next:next,app:appFrom(upgradeUrl)}:{next:next};function post(url){return fetch(url,{method:"POST",credentials:"include",headers:{"content-type":"application/json"},body:JSON.stringify(body)})}function handle(res){if(res&&res.status===401){var login=new URL("/login",apexOrigin);login.searchParams.set("next","/upgrade");go(login.toString());return null}return res.json().then(function(data){if(res.status===409){go(next.indexOf("http")===0?next:new URL(next,location.href).toString());return}if(!res.ok||!data||!data.url){fail(data&&data.error);return}go(data.url)}).catch(function(){fail()})}post(endpoint).then(handle).catch(function(){return post(apexOrigin+endpoint).then(handle).catch(function(){fail()})})}function normalizeMsg(msg){if(msg==null)return null;var s=String(msg).trim();if(!s)return null;return s.slice(0,280)}function pickMsg(b,headerMsg){var fromHeader=normalizeMsg(headerMsg);if(fromHeader)return fromHeader;if(!b||typeof b!=="object")return null;return normalizeMsg(b.upgradeMessage)||normalizeMsg(b.description)||normalizeMsg(b.message)}function addOption(row,className,label,onClick){var wrap=document.createElement("div");wrap.className="fc-upgrade-option";var btn=document.createElement("button");btn.type="button";btn.className=className;btn.textContent=label;btn.addEventListener("click",function(){onClick(btn)});wrap.appendChild(btn);row.appendChild(wrap);return btn}function show(u,msg){if(!u||typeof u!=="string")return;if(document.getElementById("fc-upgrade-modal"))return;var oneLink=appFrom(u);var bodyText=oneLink?ONE_LINK_INTRO:(normalizeMsg(msg)||DEFAULT_BODY);var o=document.createElement("div");o.id="fc-upgrade-modal";o.setAttribute("role","dialog");o.setAttribute("aria-modal","true");o.setAttribute("aria-labelledby","fc-upgrade-title");o.innerHTML='<div class="fc-upgrade-backdrop" aria-hidden="true"></div><div class="fc-upgrade-card" data-fc-upgrade-card><p class="fc-upgrade-eyebrow"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0 13.8 8.4 22 10.2 13.8 12 12 20.4 10.2 12 2 10.2 10.2 8.4Z"/></svg>A Little Key is needed</p><h2 id="fc-upgrade-title" class="fc-upgrade-title">Unlock this little world</h2><p class="fc-upgrade-body"></p><div class="fc-upgrade-actions"></div></div>';var bodyEl=o.querySelector(".fc-upgrade-body");if(bodyEl)bodyEl.textContent=bodyText;var row=o.querySelector(".fc-upgrade-actions");function close(){o.remove()}var focusEl;if(oneLink&&row){row.classList.add("is-choice");addOption(row,"fc-upgrade-secondary",ONE_LINK_LABEL,function(btn){startCheckout(u,btn,"one_link")});addOption(row,"fc-upgrade-primary",ONE_LINK_LITTLE_KEY_LABEL,function(btn){startCheckout(u,btn,"plus")});var dismiss=document.createElement("button");dismiss.type="button";dismiss.className="fc-upgrade-dismiss";dismiss.textContent="Not now";dismiss.addEventListener("click",close);row.appendChild(dismiss);focusEl=dismiss}else if(row){var a=document.createElement("button");a.type="button";a.className="fc-upgrade-primary";a.textContent="Get A Little Key";a.addEventListener("click",function(){startCheckout(u,a,"plus")});var b=document.createElement("button");b.type="button";b.className="fc-upgrade-secondary";b.textContent="Not now";b.addEventListener("click",close);row.appendChild(a);row.appendChild(b);focusEl=b}var backdrop=o.querySelector(".fc-upgrade-backdrop");if(backdrop)backdrop.addEventListener("click",close);(document.body||document.documentElement).appendChild(o);if(focusEl)focusEl.focus()}window.__LWW_showUpgradeModal=function(u,opts){var msg=null;if(typeof opts==="string")msg=opts;else if(opts&&typeof opts==="object")msg=opts.description||opts.upgradeMessage||opts.message||null;show(u,msg)};function check(res){if(!res||res.status!==403)return res;var h=res.headers&&res.headers.get?res.headers.get("x-from-collette-upgrade-url"):null;var m=res.headers&&res.headers.get?res.headers.get("x-from-collette-upgrade-message"):null;if(h){show(h,m);return res}var ct=res.headers&&res.headers.get?res.headers.get("content-type")||"":"";if(ct.indexOf("json")===-1)return res;return res.clone().json().then(function(b){if(b&&b.error==="Upgrade required"&&b.upgradeUrl)show(b.upgradeUrl,pickMsg(b,m));return res}).catch(function(){return res})}if(window.fetch){var F=window.fetch;window.fetch=function(){return F.apply(this,arguments).then(check)}}function stripResume(){try{var u=new URL(location.href);if(u.searchParams.get(RESUME)!=="1")return false;u.searchParams.delete(RESUME);var next=u.pathname+u.search+u.hash;if(history.replaceState)history.replaceState(null,"",next);return true}catch(e){return false}}function fireResume(n){if(typeof window.__LWW_resumeShare==="function"){window.__LWW_oneLinkPaid=false;window.__LWW_resumeShare();return}window.__LWW_oneLinkPaid=true;try{window.dispatchEvent(new CustomEvent("lww:one-link-paid"))}catch(e){}if(n<24)setTimeout(function(){fireResume(n+1)},250)}if(stripResume())fireResume(0);var X=window.XMLHttpRequest;if(!X||!X.prototype)return;var open=X.prototype.open,send=X.prototype.send;X.prototype.open=function(){this.__fcUrl=arguments[1];return open.apply(this,arguments)};X.prototype.send=function(){var xhr=this;xhr.addEventListener("load",function(){if(xhr.status!==403)return;var h=xhr.getResponseHeader("x-from-collette-upgrade-url");var m=xhr.getResponseHeader("x-from-collette-upgrade-message");if(h){show(h,m);return}try{var b=JSON.parse(xhr.responseText);if(b&&b.error==="Upgrade required"&&b.upgradeUrl)show(b.upgradeUrl,pickMsg(b,m))}catch(e){}});return send.apply(this,arguments)}})();</script><script data-fc-save-inpage>(function(){var links="https://littleweb.world/my-links?tab=saved";var signupBase="https://littleweb.world/signup";var apexOrigin="https://littleweb.world";function title(){var m=document.querySelector('meta[name="fc:share-title"]');var v=m&&m.getAttribute("content");if(v&&String(v).trim())return String(v).trim().slice(0,2048);var d=document.title;return d&&String(d).trim()?String(d).trim().slice(0,2048):""}function toast(s){if(s!=="1"&&s!=="0")return;var old=document.getElementById("fc-saved-toast");if(old)old.remove();var t=document.createElement("div");t.id="fc-saved-toast";t.setAttribute("role","status");t.setAttribute("aria-live","polite");if(s==="1"){t.appendChild(document.createTextNode("Saved to "));var a=document.createElement("a");a.href=links;a.textContent="Your Little Links";t.appendChild(a)}else{t.className="is-err";t.textContent="Couldn’t save that link. Try again."}(document.body||document.documentElement).appendChild(t);requestAnimationFrame(function(){t.classList.add("is-visible")});setTimeout(function(){t.classList.remove("is-visible");setTimeout(function(){t.remove()},320)},3200)}function restore(a){a.classList.remove("is-saving");a.textContent="Save Link";a.removeAttribute("aria-busy")}function done(a){a.remove();toast("1")}function post(url,body){return fetch(url,{method:"POST",credentials:"include",headers:{"content-type":"application/json"},body:JSON.stringify(body)})}function showSignup(saveHref){if(document.getElementById("fc-save-signup-modal"))return;var signupHref=signupBase+"?next="+encodeURIComponent(saveHref);var root=document.createElement("div");root.id="fc-save-signup-modal";root.setAttribute("role","dialog");root.setAttribute("aria-modal","true");root.setAttribute("aria-labelledby","fc-save-signup-title");root.innerHTML='<div class="fc-save-signup-backdrop" aria-hidden="true"></div><div class="fc-save-signup-card"><p class="fc-save-signup-eyebrow"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0 13.8 8.4 22 10.2 13.8 12 12 20.4 10.2 12 2 10.2 10.2 8.4Z"/></svg>Save this link</p><h2 id="fc-save-signup-title" class="fc-save-signup-title">You need to sign up to save</h2><p class="fc-save-signup-body">Create a free account to keep this in Your Little Links.</p><div class="fc-save-signup-actions"><a class="fc-save-signup-primary" href="'+signupHref.replace(/"/g,"&quot;")+'">Sign up</a><button type="button" class="fc-save-signup-secondary">Not now</button></div></div>';function close(){root.remove()}root.querySelector(".fc-save-signup-secondary").addEventListener("click",close);root.querySelector(".fc-save-signup-backdrop").addEventListener("click",close);(document.body||document.documentElement).appendChild(root);var btn=root.querySelector(".fc-save-signup-secondary");if(btn)btn.focus()}document.addEventListener("click",function(e){if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;var el=e.target;if(!el||!el.closest)return;var a=el.closest("a.fc-shell-save");if(!a)return;var href=a.getAttribute("href");if(!href)return;var website,shareUrl;try{var u=new URL(href,window.location.href);website=u.searchParams.get("website");shareUrl=u.searchParams.get("url")}catch(err){return}if(!website||!shareUrl)return;e.preventDefault();e.stopPropagation();var body={website:website,url:shareUrl,source:"received"};var t=title();if(t)body.title=t;a.classList.add("is-saving");a.textContent="Saving…";a.setAttribute("aria-busy","true");function fail(){toast("0");restore(a)}function afterLocal(res){if(res&&(res.status===201||res.ok)){done(a);return null}if(res&&res.status===401){return post(apexOrigin+"/api/user-links",body).then(function(res2){if(res2.status===201||res2.ok){done(a);return}if(res2.status===401){restore(a);showSignup(href);return}fail()}).catch(function(){window.location.assign(href)})}fail();return null}post("/api/user-links",body).then(afterLocal).catch(function(){return post(apexOrigin+"/api/user-links",body).then(function(res2){if(res2.status===201||res2.ok){done(a);return}if(res2.status===401){restore(a);showSignup(href);return}fail()}).catch(function(){window.location.assign(href)})})},true)})();</script><!--fc-apex-warmup--><link rel="dns-prefetch" href="https://littleweb.world"><link rel="preconnect" href="https://littleweb.world"><link rel="prefetch" href="https://littleweb.world" as="document"><link rel="preload" href="/brand/fonts/special-elite-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin><style id="fc-critical-special-elite">@font-face{font-family:"Special Elite";font-style:normal;font-display:swap;font-weight:400;src:url("/brand/fonts/special-elite-latin-400-normal.woff2") format("woff2")}</style><link rel="preload" href="/brand/fonts.css?v=special-elite-2" as="style"><link rel="stylesheet" href="/brand/fonts.css?v=special-elite-2"><link rel="prefetch" href="/logo.png" as="image"><!--/fc-apex-warmup--><style id="fc-platform-shell-styles">/* Absolute overlay on all viewports — out of flow, no layout height. */
+  #fc-platform-shell {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2147483000;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: auto;
+    background: transparent;
+    pointer-events: none;
+    font-family: Quicksand, ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: #2c1814;
+  }
+  #fc-platform-shell *,
+  #fc-platform-shell *::before,
+  #fc-platform-shell *::after {
+    box-sizing: border-box;
+  }
+  #fc-platform-shell .fc-shell-inner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px 20px;
+  }
+  #fc-platform-shell .fc-shell-brand {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    align-items: center;
+    gap: 4px;
+    color: inherit;
+    text-decoration: none;
+    pointer-events: auto;
+  }
+  #fc-platform-shell .fc-shell-brand img {
+    display: block;
+    height: 42.59px;
+    width: auto;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+  }
+  #fc-platform-shell .fc-shell-brand:hover img {
+    transform: rotate(-10deg);
+  }
+  #fc-platform-shell .fc-shell-title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: "Special Elite", "Courier New", monospace;
+    font-size: calc(1.05rem - 3px);
+    font-weight: 400;
+    letter-spacing: 0.025em;
+    line-height: 0.98;
+    color: #a34a2e;
+    -webkit-font-smoothing: antialiased;
+  }
+  #fc-platform-shell .fc-shell-title-line {
+    display: block;
+    white-space: nowrap;
+  }
+  #fc-platform-shell .fc-shell-save {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 4px 0 0 auto;
+    padding: 0.45rem 0.95rem;
+    border-radius: 999px;
+    border: 1px solid rgba(163, 74, 46, 0.35);
+    background: #fffaf3;
+    color: #a34a2e;
+    text-decoration: none;
+    font-family: Quicksand, ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+  }
+  #fc-platform-shell .fc-shell-save:hover {
+    background: #f7ebe3;
+  }
+  #fc-platform-shell .fc-shell-save.is-saving {
+    opacity: 0.75;
+    pointer-events: none;
+  }
+  /* Phone + iPad: hide chrome unless Save is present; then show Save only (no logo). */
+  @media (max-width: 1023px) {
+    #fc-platform-shell:not(:has(.fc-shell-save)) {
+      display: none;
+    }
+    #fc-platform-shell:has(.fc-shell-save) .fc-shell-brand {
+      display: none;
+    }
+    #fc-platform-shell:has(.fc-shell-save) .fc-shell-inner {
+      justify-content: flex-end;
+      padding: 10px 14px;
+    }
+    #fc-platform-shell:has(.fc-shell-save) .fc-shell-save {
+      margin: 0;
+    }
+  }
+  #fc-save-signup-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483646;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    box-sizing: border-box;
+    font-family: Quicksand, ui-sans-serif, system-ui, sans-serif;
+  }
+  #fc-save-signup-modal .fc-save-signup-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(44, 24, 20, 0.45);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+  #fc-save-signup-modal .fc-save-signup-card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 28rem;
+    overflow: hidden;
+    border-radius: 1.75rem;
+    border: 1px solid #f3d5c8;
+    padding: 2rem 1.5rem;
+    color: #2c1814;
+    background-color: #fffbf7;
+    background-image: linear-gradient(180deg, #fffbf7 0%, rgba(255, 244, 234, 0.92) 100%);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.8) inset,
+      0 14px 36px rgba(44, 24, 20, 0.1);
+  }
+  @media (min-width: 640px) {
+    #fc-save-signup-modal .fc-save-signup-card {
+      padding: 2rem;
+    }
+  }
+  #fc-save-signup-modal .fc-save-signup-eyebrow {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #a34a2e;
+  }
+  #fc-save-signup-modal .fc-save-signup-eyebrow svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    flex-shrink: 0;
+  }
+  #fc-save-signup-modal .fc-save-signup-title {
+    margin: 0.75rem 0 0;
+    font-family: Fraunces, Georgia, serif;
+    font-size: 1.85rem;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: #2c1814;
+  }
+  #fc-save-signup-modal .fc-save-signup-body {
+    margin: 0.75rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: #7a564e;
+  }
+  #fc-save-signup-modal .fc-save-signup-actions {
+    margin-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  #fc-save-signup-modal .fc-save-signup-primary,
+  #fc-save-signup-modal .fc-save-signup-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1.25rem;
+    border-radius: 999px;
+    text-decoration: none;
+    font: 500 0.875rem/1.25 Quicksand, ui-sans-serif, system-ui, sans-serif;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  }
+  #fc-save-signup-modal .fc-save-signup-primary {
+    background: #c96342;
+    color: #fffbf7;
+    box-shadow:
+      0 0 0 1px rgba(201, 99, 66, 0.35),
+      0 8px 20px rgba(44, 24, 20, 0.08);
+  }
+  #fc-save-signup-modal .fc-save-signup-primary:hover {
+    background: #a34a2e;
+    transform: translateY(-1px);
+  }
+  #fc-save-signup-modal .fc-save-signup-secondary {
+    border: 1px solid #f3d5c8;
+    background: #fffbf7;
+    color: #2c1814;
+  }
+  #fc-save-signup-modal .fc-save-signup-secondary:hover {
+    border-color: rgba(201, 99, 66, 0.4);
+    background: rgba(255, 230, 216, 0.4);
+  }
+  #fc-upgrade-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483646;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    box-sizing: border-box;
+    font-family: Quicksand, ui-sans-serif, system-ui, sans-serif;
+  }
+  #fc-upgrade-modal .fc-upgrade-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(44, 24, 20, 0.45);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+  #fc-upgrade-modal .fc-upgrade-card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 28rem;
+    overflow: hidden;
+    border-radius: 1.75rem;
+    border: 1px solid #f3d5c8;
+    padding: 2rem 1.5rem;
+    color: #2c1814;
+    background-color: #fffbf7;
+    background-image: linear-gradient(180deg, #fffbf7 0%, rgba(255, 244, 234, 0.92) 100%);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.8) inset,
+      0 14px 36px rgba(44, 24, 20, 0.1);
+  }
+  @media (min-width: 640px) {
+    #fc-upgrade-modal .fc-upgrade-card {
+      padding: 2rem;
+    }
+  }
+  #fc-upgrade-modal .fc-upgrade-eyebrow {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #a34a2e;
+  }
+  #fc-upgrade-modal .fc-upgrade-eyebrow svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    flex-shrink: 0;
+  }
+  #fc-upgrade-modal .fc-upgrade-title {
+    margin: 0.75rem 0 0;
+    font-family: Fraunces, Georgia, serif;
+    font-size: 1.85rem;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: #2c1814;
+  }
+  #fc-upgrade-modal .fc-upgrade-body {
+    margin: 0.75rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: #7a564e;
+  }
+  #fc-upgrade-modal .fc-upgrade-actions {
+    margin-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  #fc-upgrade-modal .fc-upgrade-actions.is-choice {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
+  #fc-upgrade-modal .fc-upgrade-option {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  #fc-upgrade-modal .fc-upgrade-actions.is-choice .fc-upgrade-primary,
+  #fc-upgrade-modal .fc-upgrade-actions.is-choice .fc-upgrade-secondary {
+    width: 100%;
+  }
+  #fc-upgrade-modal .fc-upgrade-caption {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: #7a564e;
+  }
+  #fc-upgrade-modal .fc-upgrade-dismiss {
+    align-self: center;
+    margin-top: 0.25rem;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #7a564e;
+    font: 500 0.875rem/1.25 Quicksand, ui-sans-serif, system-ui, sans-serif;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  #fc-upgrade-modal .fc-upgrade-primary,
+  #fc-upgrade-modal .fc-upgrade-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1.25rem;
+    border-radius: 999px;
+    text-decoration: none;
+    font: 500 0.875rem/1.25 Quicksand, ui-sans-serif, system-ui, sans-serif;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  }
+  #fc-upgrade-modal .fc-upgrade-primary {
+    background: #c96342;
+    color: #fffbf7;
+    box-shadow:
+      0 0 0 1px rgba(201, 99, 66, 0.35),
+      0 8px 20px rgba(44, 24, 20, 0.08);
+  }
+  #fc-upgrade-modal .fc-upgrade-primary:hover:not(:disabled) {
+    background: #a34a2e;
+    transform: translateY(-1px);
+  }
+  #fc-upgrade-modal .fc-upgrade-primary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+  #fc-upgrade-modal .fc-upgrade-secondary {
+    border: 1px solid #f3d5c8;
+    background: #fffbf7;
+    color: #2c1814;
+  }
+  #fc-upgrade-modal .fc-upgrade-secondary:hover {
+    border-color: rgba(201, 99, 66, 0.4);
+    background: rgba(255, 230, 216, 0.4);
+  }
+  #fc-upgrade-modal .fc-upgrade-error {
+    margin: 0.75rem 0 0;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: #a34a2e;
+  }
+  #fc-saved-toast {
+    position: fixed;
+    z-index: 2147483645;
+    left: 50%;
+    bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+    transform: translate(-50%, 10px);
+    box-sizing: border-box;
+    max-width: min(22rem, calc(100vw - 2rem));
+    margin: 0;
+    padding: 0.85rem 1.1rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(163, 74, 46, 0.28);
+    background: #fffaf3;
+    color: #2c1814;
+    box-shadow: 0 14px 36px rgba(28, 24, 22, 0.18);
+    font-family: Quicksand, ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: 0.01em;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 280ms ease, transform 280ms ease;
+  }
+  #fc-saved-toast.is-visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+  }
+  #fc-saved-toast.is-err {
+    border-color: rgba(140, 54, 40, 0.35);
+    color: #8c3628;
+  }
+  #fc-saved-toast a {
+    color: #a34a2e;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }</style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#F7F1E6" />
+<title>digital care package</title>
 <script>
-/* ============================================================================
-   THIS MONTH'S MAIL CONFIGURATION
-   EDIT THIS SECTION ONLY TO CREATE EACH MEMBER'S PACKAGE!
-   (You can also edit all of this live from the Admin panel — see the very
-   bottom of this file for how to open it — and export updated code from there.)
-   ============================================================================ */
-const PACKAGE_DATA = {
-
-  // ---- shipping label info ----
-  toName: "Maya",
-  fromName: "Ania's Digi Mail Club",
-  month: "OCTOBER 2026",
-  trackingNumber: "9405 5118 9956 1891 2345 67",
-
-  // ---- Google Drive folder link for this package (optional) ----
-  driveLink: "",
-
-  // ---- Unique ID for this package ----
-  packageId: "",
-
-  // ---- the goodies inside, in the order they should appear ----
-  // supported "type" values: TEXT, PHOTOCARD_SET, LINK, DOWNLOAD, CUSTOM, DRIVE_FOLDER
-  items: [
-    {
-      id: "letter-01",
-      type: "TEXT",
-      title: "A little note for you",
-      description: "",
-      text: "hi maya! i hope october has been soft and slow for you.\nthis box has a few things i thought you'd like <3\n\n— ania",
-      image: ""
-    },
-    {
-      id: "photos-01",
-      type: "PHOTOCARD_SET",
-      title: "Photocards from this month",
-      description: "tap any card to see it up close",
-      photocards: [
-        "https://images.unsplash.com/photo-1517816428104-797678c7cf0c?w=600",
-        "https://images.unsplash.com/photo-1500462918059-b1a0cb512f1d?w=600",
-        "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600",
-        "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=600",
-        "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600",
-        "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=600",
-        "https://images.unsplash.com/photo-1441057206919-63d19fac2369?w=600"
-      ]
-    },
-    {
-      id: "playlist-01",
-      type: "LINK",
-      title: "October's playlist",
-      description: "cozy songs for rainy afternoons",
-      link: "https://open.spotify.com",
-      buttonLabel: "Listen now"
-    },
-    {
-      id: "wallpaper-01",
-      type: "DOWNLOAD",
-      title: "Phone wallpaper",
-      description: "a little something for your lock screen",
-      link: "https://images.unsplash.com/photo-1495756111155-cb0d2df85332?w=1200",
-      buttonLabel: "Download",
-      downloadable: true
-    },
-    {
-      id: "custom-01",
-      type: "CUSTOM",
-      title: "What's in my cart right now",
-      description: "just some things i've been eyeing lately",
-      text: [
-        "a cinnamon candle",
-        "that green cardigan i keep going back to",
-        "a new notebook (i don't need it, i just want it)"
-      ]
+  /* Hide the builder before first paint on /p/{id} share links (avoids home FOUC). */
+  (function () {
+    if (/^\/p\/[A-Za-z0-9_-]+/.test(location.pathname)) {
+      document.documentElement.classList.add("is-recipient");
     }
-  ]
-};
+  })();
+</script>
+<style>
+  html.is-recipient #builderView { display: none !important; }
+  html.is-recipient #recipientView { display: flex; }
+</style>
+<!-- Sentry -->
+<script src="https://browser.sentry-cdn.com/8.55.0/bundle.tracing.replay.min.js" crossorigin="anonymous"></script>
+<script src="/sentry-config.js"></script>
+<script src="/sentry-init.js"></script>
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png" />
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Great+Vibes&family=Space+Mono:wght@400;700&display=swap" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body><header id="fc-platform-shell">
+  <div class="fc-shell-inner">
+    <a href="https://littleweb.world" class="fc-shell-brand" aria-label="Little Web World">
+      <img src="/logo.png" alt="" width="44" height="44" />
+      <span class="fc-shell-title">
+        <span class="fc-shell-title-line">little</span>
+        <span class="fc-shell-title-line">web world</span>
+      </span>
+    </a>
+  </div>
+</header>
 
-// ============================================================================
-// DO NOT EDIT BELOW — rendering, animation, and admin logic
-// ============================================================================
-
-/* ---------------------------------------------------------------------------
-   Working copy of the data. The admin panel edits THIS, not the constant
-   above, so you can preview changes live before exporting the final code.
---------------------------------------------------------------------------- */
-let currentData = JSON.parse(JSON.stringify(PACKAGE_DATA));
-
-/* ---------------------------------------------------------------------------
-   PACKAGE ROUTING / UNIQUE ID SYSTEM
---------------------------------------------------------------------------- */
-function getPackageIdFromUrl() {
-  const hash = window.location.hash.replace('#', '').trim();
-  if (hash) {
-    if (hash.startsWith('package=')) return hash.replace('package=', '');
-    if (hash.startsWith('package/')) return hash.replace('package/', '');
-    return hash;
-  }
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('package')) return params.get('package');
-  return null;
-}
-
-function initPackageData() {
-  const urlPkgId = getPackageIdFromUrl();
-  
-  if (urlPkgId) {
-    const savedPackages = JSON.parse(localStorage.getItem('digiMailPackages') || '{}');
-    if (savedPackages[urlPkgId]) {
-      currentData = savedPackages[urlPkgId];
-    } else {
-      currentData.packageId = urlPkgId;
-    }
-  } else {
-    if (!currentData.packageId) {
-      currentData.packageId = 'pkg-' + Math.random().toString(36).substring(2, 9);
-    }
-  }
-  
-  const savedPackages = JSON.parse(localStorage.getItem('digiMailPackages') || '{}');
-  savedPackages[currentData.packageId] = currentData;
-  localStorage.setItem('digiMailPackages', JSON.stringify(savedPackages));
-}
-
-initPackageData();
-
-/* ---------------------------------------------------------------------------
-   LABEL + BARCODE RENDERING
---------------------------------------------------------------------------- */
-function renderLabel(){
-  document.getElementById('label-month').textContent = currentData.month;
-  document.getElementById('label-to').textContent = currentData.toName;
-  document.getElementById('label-from').textContent = currentData.fromName;
-  document.getElementById('label-tracking').textContent = currentData.trackingNumber;
-  renderBarcode(currentData.trackingNumber);
-  document.getElementById('goodies-sub').textContent =
-    "everything " + currentData.fromName.split("'")[0] + " packed for " + currentData.toName + " this month";
-}
-
-// Purely decorative barcode built deterministically from the tracking number
-function renderBarcode(str){
-  const holder = document.getElementById('barcode-bars');
-  holder.innerHTML = '';
-  const chars = (str || '000000').replace(/\s/g, '').split('');
-  chars.forEach((ch, i) => {
-    const code = ch.charCodeAt(0);
-    const bar = document.createElement('span');
-    bar.style.width = (2 + (code % 3)) + 'px';
-    bar.style.height = (40 + (code * (i + 1)) % 60) + '%';
-    bar.style.marginRight = (code % 2 === 0 ? '1px' : '2px');
-    holder.appendChild(bar);
-  });
-}
-
-/* ---------------------------------------------------------------------------
-   GOODIES GRID RENDERING
---------------------------------------------------------------------------- */
-function renderGoodies(){
-  const grid = document.getElementById('goodies-grid');
-  grid.innerHTML = '';
-  
-  if (currentData.driveLink) {
-    const driveCard = document.createElement('article');
-    driveCard.className = 'goodie-card';
-    driveCard.innerHTML = '<div class="card-tape"></div>' + renderItemInner({
-      type: 'DRIVE_FOLDER',
-      title: 'Google Drive Folder',
-      description: 'Access the digital folder for this package.',
-      link: currentData.driveLink,
-      buttonLabel: 'Open Google Drive Folder'
-    });
-    grid.appendChild(driveCard);
-  }
-
-  currentData.items.forEach(item => {
-    const card = document.createElement('article');
-    card.className = 'goodie-card';
-    card.innerHTML = '<div class="card-tape"></div>' + renderItemInner(item);
-    grid.appendChild(card);
-  });
-  attachPhotocardHandlers();
-}
-
-function escapeHtml(str){
-  if (str === undefined || str === null) return '';
-  return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function renderItemInner(item){
-  const kicker = '<div class="goodie-kicker">' + escapeHtml(item.type.replace('_',' ')) + '</div>';
-  const title = item.title ? '<h3 class="goodie-title">' + escapeHtml(item.title) + '</h3>' : '';
-  const desc = item.description ? '<p class="goodie-desc">' + escapeHtml(item.description) + '</p>' : '';
-  const image = item.image ? '<img class="goodie-image" src="' + item.image + '" alt="">' : '';
-
-  switch(item.type){
-
-    case 'DRIVE_FOLDER': {
-      const label = item.buttonLabel || 'Open Google Drive Folder';
-      const btn = item.link ? '<a class="goodie-btn" href="' + item.link + '" target="_blank" rel="noopener">' + escapeHtml(label) + ' ↗</a>' : '';
-      return kicker + title + desc + btn;
-    }
-
-    case 'TEXT': {
-      const note = item.text ? '<div class="goodie-note">' + escapeHtml(item.text) + '</div>' : '';
-      return kicker + title + image + note + desc;
-    }
-
-    case 'PHOTOCARD_SET': {
-      const cards = (item.photocards || []);
-      const thumbs = cards.map((src, i) =>
-        '<img class="photocard-thumb" data-set="' + item.id + '" data-index="' + i + '" src="' + src + '" alt="photocard">'
-      ).join('');
-      return kicker + title + desc +
-        '<div class="photocard-grid" id="grid-' + item.id + '">' + thumbs + '</div>';
-    }
-
-    case 'LINK': {
-      const label = item.buttonLabel || 'Open link';
-      const btn = item.link ? '<a class="goodie-btn" href="' + item.link + '" target="_blank" rel="noopener">' + escapeHtml(label) + ' ↗</a>' : '';
-      return kicker + title + image + desc + btn;
-    }
-
-    case 'DOWNLOAD': {
-      const label = item.buttonLabel || 'Download';
-      const dl = item.downloadable ? ' download' : '';
-      const btn = item.link ? '<a class="goodie-btn" href="' + item.link + '"' + dl + ' target="_blank" rel="noopener">' + escapeHtml(label) + ' ⬇</a>' : '';
-      return kicker + title + image + desc + btn;
-    }
-
-    case 'CUSTOM': {
-      let body = '';
-      if (Array.isArray(item.text)){
-        body = '<ul class="custom-list">' + item.text.map(t => '<li>' + escapeHtml(t) + '</li>').join('') + '</ul>';
-      } else if (item.text){
-        body = '<div class="goodie-note">' + escapeHtml(item.text) + '</div>';
-      }
-      const label = item.buttonLabel && item.link
-        ? '<a class="goodie-btn" href="' + item.link + '" target="_blank" rel="noopener">' + escapeHtml(item.buttonLabel) + ' ↗</a>'
-        : '';
-      return kicker + title + image + desc + body + label;
-    }
-
-    default:
-      return kicker + title + desc;
-  }
-}
-
-/* ---------------------------------------------------------------------------
-   PHOTOCARD LIGHTBOX
---------------------------------------------------------------------------- */
-let modalSet = [];
-let modalIndex = 0;
-
-function attachPhotocardHandlers(){
-  document.querySelectorAll('.photocard-thumb').forEach(thumb => {
-    thumb.addEventListener('click', () => {
-      const setId = thumb.getAttribute('data-set');
-      const item = currentData.items.find(i => i.id === setId);
-      modalSet = item.photocards || [];
-      modalIndex = parseInt(thumb.getAttribute('data-index'), 10);
-      openModal();
-    });
-  });
-}
-
-function openModal(){
-  document.getElementById('modal-img').src = modalSet[modalIndex];
-  document.getElementById('modal-count').textContent = (modalIndex + 1) + ' / ' + modalSet.length;
-  document.getElementById('modal-overlay').classList.add('open');
-}
-function closeModal(){ document.getElementById('modal-overlay').classList.remove('open'); }
-function stepModal(dir){
-  modalIndex = (modalIndex + dir + modalSet.length) % modalSet.length;
-  openModal();
-}
-document.getElementById('modal-close').addEventListener('click', closeModal);
-document.getElementById('modal-prev').addEventListener('click', () => stepModal(-1));
-document.getElementById('modal-next').addEventListener('click', () => stepModal(1));
-document.getElementById('modal-overlay').addEventListener('click', e => {
-  if (e.target.id === 'modal-overlay') closeModal();
-});
-
-/* ---------------------------------------------------------------------------
-   OPENING ANIMATION
---------------------------------------------------------------------------- */
-const SCATTER_EMOJI = ['💌','🎀','📷','🎵','🌸','📎','✂️','🧷'];
-
-function playOpeningAnimation(){
-  const parcel = document.getElementById('parcel');
-  const wrap = document.getElementById('parcel-wrap');
-  parcel.classList.add('opening');
-  wrap.classList.add('hide-btn');
-
-  const scatterLayer = document.getElementById('scatter-layer');
-  scatterLayer.innerHTML = '';
-
-  const count = Math.min(8, Math.max(4, currentData.items.length));
-  for (let i = 0; i < count; i++){
-    const el = document.createElement('div');
-    el.className = 'scatter-item';
-    el.textContent = SCATTER_EMOJI[i % SCATTER_EMOJI.length];
-    const angle = (Math.PI * 2 * i / count) + (Math.random() * 0.6 - 0.3);
-    const dist = 90 + Math.random() * 70;
-    el.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
-    el.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
-    el.style.setProperty('--rot', (Math.random() * 60 - 30) + 'deg');
-    scatterLayer.appendChild(el);
-    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('fly')));
-    setTimeout(() => el.classList.add('settle'), 650);
-  }
-
-  setTimeout(() => {
-    document.getElementById('package-scene').classList.remove('active');
-    document.getElementById('goodies-scene').classList.add('active');
-    window.scrollTo({top:0, behavior:'instant' in window ? 'instant' : 'auto'});
-  }, 1250);
-}
-
-document.getElementById('open-btn').addEventListener('click', playOpeningAnimation);
-
-/* ---------------------------------------------------------------------------
-   INITIAL RENDER
---------------------------------------------------------------------------- */
-renderLabel();
-renderGoodies();
-
-/* ============================================================================
-   SECRET ADMIN DOOR
-   ============================================================================ */
-const ADMIN_PASSCODE = "digimail";
-
-let doorClicks = 0;
-let doorTimer = null;
-document.getElementById('admin-trigger').addEventListener('click', () => {
-  doorClicks++;
-  clearTimeout(doorTimer);
-  doorTimer = setTimeout(() => { doorClicks = 0; }, 2500);
-  if (doorClicks >= 5){
-    doorClicks = 0;
-    openAdminGate();
-  }
-});
-document.addEventListener('keydown', e => {
-  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') openAdminGate();
-});
-
-function openAdminGate(){
-  const panel = document.getElementById('admin-panel');
-  panel.innerHTML = `
-    <div class="admin-passcode-gate">
-      <h2>psst — admin only</h2>
-      <p style="font-size:0.85rem;">enter the passcode to edit this month's package</p>
-      <div class="admin-field" style="max-width:220px; margin:0 auto;">
-        <input type="password" id="admin-passcode-input" placeholder="passcode">
-      </div>
-      <div class="admin-row" style="justify-content:center;">
-        <button class="admin-btn primary" id="admin-unlock-btn">Unlock</button>
-        <button class="admin-btn" id="admin-cancel-btn">Cancel</button>
-      </div>
-    </div>`;
-  document.getElementById('admin-overlay').classList.add('open');
-  document.getElementById('admin-unlock-btn').addEventListener('click', tryUnlock);
-  document.getElementById('admin-passcode-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') tryUnlock();
-  });
-  document.getElementById('admin-cancel-btn').addEventListener('click', () => {
-    document.getElementById('admin-overlay').classList.remove('open');
-  });
-  document.getElementById('admin-passcode-input').focus();
-}
-
-function tryUnlock(){
-  const val = document.getElementById('admin-passcode-input').value;
-  if (val === ADMIN_PASSCODE){
-    renderAdminEditor();
-  } else {
-    const input = document.getElementById('admin-passcode-input');
-    input.style.borderColor = 'var(--stamp-red)';
-    input.value = '';
-    input.placeholder = 'wrong passcode, try again';
-  }
-}
-
-/* ---------------------------------------------------------------------------
-   ADMIN EDITOR
---------------------------------------------------------------------------- */
-const ITEM_TYPES = ['TEXT','PHOTOCARD_SET','LINK','DOWNLOAD','CUSTOM'];
-
-function renderAdminEditor(){
-  const panel = document.getElementById('admin-panel');
-  panel.innerHTML = `
-    <h2>admin — edit this month's mail</h2>
-
-    <h3>shipping label & package info</h3>
-    <div class="admin-field"><label>To</label><input id="f-toName"></div>
-    <div class="admin-field"><label>From</label><input id="f-fromName"></div>
-    <div class="admin-field"><label>Month / Year</label><input id="f-month"></div>
-    <div class="admin-field"><label>Tracking number</label><input id="f-tracking"></div>
-    <div class="admin-field"><label>Package Unique ID</label><input id="f-packageId" placeholder="e.g. september-mail"></div>
-    <div class="admin-field"><label>Google Drive Folder Link</label><input id="f-driveLink" placeholder="https://drive.google.com/drive/folders/..."></div>
-
-    <h3>items</h3>
-    <div id="admin-items"></div>
-    <button class="admin-btn" id="add-item-btn">+ Add item</button>
-
-    <div class="admin-row">
-      <button class="admin-btn primary" id="apply-btn">Apply &amp; preview</button>
-      <button class="admin-btn primary" id="copy-package-link-btn" style="background:#C84B31; border-color:#C84B31;">Copy Package Link</button>
-      <button class="admin-btn" id="save-draft-btn">Save draft to this browser</button>
-      <button class="admin-btn" id="load-draft-btn">Load saved draft</button>
-      <button class="admin-btn" id="export-btn">Export code</button>
-      <button class="admin-btn danger" id="close-admin-btn">Close</button>
-    </div>
-    <textarea class="admin-export" id="admin-export-box" style="display:none;" readonly></textarea>
-  `;
-
-  document.getElementById('f-toName').value = currentData.toName;
-  document.getElementById('f-fromName').value = currentData.fromName;
-  document.getElementById('f-month').value = currentData.month;
-  document.getElementById('f-tracking').value = currentData.trackingNumber;
-  document.getElementById('f-packageId').value = currentData.packageId || '';
-  document.getElementById('f-driveLink').value = currentData.driveLink || '';
-
-  renderAdminItems();
-
-  document.getElementById('add-item-btn').addEventListener('click', () => {
-    currentData.items.push({ id: 'item-' + Date.now(), type: 'TEXT', title: '', description: '', text: '' });
-    renderAdminItems();
-  });
-  document.getElementById('apply-btn').addEventListener('click', applyAdminChanges);
-  
-  document.getElementById('copy-package-link-btn').addEventListener('click', () => {
-    applyAdminChanges();
-    const pkgId = currentData.packageId || 'pkg-' + Math.random().toString(36).substring(2, 9);
-    currentData.packageId = pkgId;
-    document.getElementById('f-packageId').value = pkgId;
-    
-    const savedPackages = JSON.parse(localStorage.getItem('digiMailPackages') || '{}');
-    savedPackages[pkgId] = currentData;
-    localStorage.setItem('digiMailPackages', JSON.stringify(savedPackages));
-    
-    const baseUrl = window.location.origin + window.location.pathname;
-    const packageUrl = baseUrl + '#package=' + encodeURIComponent(pkgId);
-    
-    navigator.clipboard.writeText(packageUrl).then(() => {
-      alert('Package link copied to clipboard!\n\n' + packageUrl);
-    }).catch(() => {
-      prompt('Copy your package link:', packageUrl);
-    });
-  });
-
-  document.getElementById('save-draft-btn').addEventListener('click', () => {
-    applyAdminChanges();
-    localStorage.setItem('digiMailDraft', JSON.stringify(currentData));
-    alert('Draft saved to this browser.');
-  });
-  document.getElementById('load-draft-btn').addEventListener('click', () => {
-    const saved = localStorage.getItem('digiMailDraft');
-    if (!saved){ alert('No saved draft found in this browser yet.'); return; }
-    currentData = JSON.parse(saved);
-    renderAdminEditor();
-    renderLabel();
-    renderGoodies();
-  });
-  document.getElementById('export-btn').addEventListener('click', () => {
-    applyAdminChanges();
-    const box = document.getElementById('admin-export-box');
-    box.style.display = 'block';
-    box.value = 'const PACKAGE_DATA = ' + JSON.stringify(currentData, null, 2) + ';';
-    box.select();
-  });
-  document.getElementById('close-admin-btn').addEventListener('click', () => {
-    document.getElementById('admin-overlay').classList.remove('open');
-  });
-}
-
-function renderAdminItems(){
-  const holder = document.getElementById('admin-items');
-  holder.innerHTML = '';
-  currentData.items.forEach((item, idx) => {
-    const block = document.createElement('div');
-    block.className = 'admin-item-block';
-    block.innerHTML = `
-      <div class="admin-item-head">
-        <span>#${idx + 1} — ${item.id}</span>
-        <div>
-          <button class="admin-btn" data-move="-1" data-idx="${idx}" style="padding:4px 10px;">↑</button>
-          <button class="admin-btn" data-move="1" data-idx="${idx}" style="padding:4px 10px;">↓</button>
-          <button class="admin-btn danger" data-remove="${idx}" style="padding:4px 10px;">remove</button>
+<div class="wrap" id="builderView">
+  <div class="builder-layout">
+    <section class="panel panel--parcel">
+      <div class="parcel-label">
+        <img class="parcel-label__bg" src="/assets/shipping-label.webp" alt="Digital care package shipping label" />
+        <div class="parcel-label__fields">
+          <div class="parcel-label__to">
+            <label class="field-label" for="pkgTitle">to / title</label>
+            <input type="text" id="pkgTitle" placeholder="cutie" maxlength="60" />
+          </div>
+          <div class="parcel-label__from">
+            <label class="field-label" for="pkgFrom">from / your name</label>
+            <input type="text" id="pkgFrom" placeholder="bestie" maxlength="40" />
+          </div>
         </div>
       </div>
-      <div class="admin-field"><label>Type</label>
-        <select data-field="type" data-idx="${idx}">
-          ${ITEM_TYPES.map(t => `<option value="${t}" ${t === item.type ? 'selected' : ''}>${t}</option>`).join('')}
-        </select>
+    </section>
+
+    <div class="builder-receipts">
+      <section class="panel panel--receipt panel--tuck">
+        <header class="receipt-head">
+          <p class="receipt-store">A Little Box of Goodies</p>
+          <p class="receipt-addr">est. for sending a little care</p>
+          <h2 class="section-stamp">
+            <img src="/assets/stamp-tuck.webp" alt="things to tuck inside" />
+          </h2>
+          <p class="receipt-meta">*** SELECT ITEMS TO TUCK ***</p>
+        </header>
+        <div class="receipt-rule receipt-rule--double" aria-hidden="true"></div>
+        <div class="receipt-cols" aria-hidden="true">
+          <span>ITEM</span>
+          <span>ADD</span>
+        </div>
+        <div class="receipt-rule" aria-hidden="true"></div>
+        <div class="type-grid" id="typeGrid"></div>
+        <div class="receipt-rule" aria-hidden="true"></div>
+        <div class="receipt-cols" aria-hidden="true">
+          <span>IN CART</span>
+          <span>QTY</span>
+        </div>
+        <div class="receipt-rule" aria-hidden="true"></div>
+        <div class="item-list" id="itemList"></div>
+        <div class="receipt-rule receipt-rule--double" aria-hidden="true"></div>
+        <footer class="receipt-foot">
+          <div class="receipt-barcode" aria-hidden="true"></div>
+          <p class="receipt-thanks">THANK YOU FOR CARING</p>
+          <p class="receipt-bye">have a nice day :)</p>
+        </footer>
+      </section>
+
+      <section class="panel panel--receipt panel--share">
+        <header class="receipt-head">
+          <p class="receipt-store">A Little Box of Goodies</p>
+          <p class="receipt-addr">share your parcel</p>
+          <h2 class="section-stamp section-stamp--share">
+            <img src="/assets/stamp-share.webp" alt="send your package" />
+          </h2>
+          <p class="receipt-meta">*** GET YOUR LINK ***</p>
+        </header>
+        <div class="receipt-rule receipt-rule--double" aria-hidden="true"></div>
+        <div class="share-actions">
+          <button id="generateBtn" type="button">Generate Link</button>
+          <button id="previewBtn" class="secondary" type="button">Preview</button>
+        </div>
+        <div class="link-box" id="linkResult">
+          <input type="text" id="linkOutput" readonly />
+          <button id="copyBtn" class="secondary small" type="button">Copy</button>
+        </div>
+        <span class="copied-msg" id="copiedMsg">copied</span>
+        <div class="error-msg" id="errorMsg"></div>
+        <div class="receipt-rule receipt-rule--double" aria-hidden="true"></div>
+        <footer class="receipt-foot">
+          <div class="receipt-barcode" aria-hidden="true"></div>
+          <p class="receipt-bye">send it to someone special</p>
+        </footer>
+      </section>
+    </div>
+  </div>
+
+  <footer class="hint">
+    <span class="hint-credit">created by <a href="https://littleweb.world" target="_blank" rel="noopener noreferrer">@littlewebworld</a></span>
+    this package will be delivered with care and love
+  </footer>
+</div>
+
+<div id="recipientView">
+  <button type="button" class="edit-pkg-btn" id="editPkgBtn">Edit package</button>
+  <div class="notfound-msg" id="notfoundMsg" style="display:none;">This package link doesn't exist (or was typed wrong).</div>
+  <div class="stage" id="stage" style="display:none;">
+    <div class="box-screen" id="boxScreen">
+      <div class="pkg-title" id="rTitle"></div>
+      <div class="box-scene">
+        <button class="box-photo-btn bare" id="openBtn" type="button">
+          <img id="boxImg" src="" alt="digital care package" />
+          <div class="box-label" aria-hidden="true">
+            <img class="box-label__bg" src="/assets/shipping-label.webp" alt="" />
+            <div class="box-label__fields">
+              <div class="box-label__to" id="boxLabelTo"></div>
+              <div class="box-label__from" id="boxLabelFrom"></div>
+            </div>
+          </div>
+        </button>
       </div>
-      <div class="admin-field"><label>Title</label><input data-field="title" data-idx="${idx}" value="${escapeHtml(item.title || '')}"></div>
-      <div class="admin-field"><label>Description</label><input data-field="description" data-idx="${idx}" value="${escapeHtml(item.description || '')}"></div>
-      <div class="admin-field"><label>Image URL (optional)</label><input data-field="image" data-idx="${idx}" value="${escapeHtml(item.image || '')}"></div>
+      <div class="tap-pill">tap to open</div>
+      <div class="pkg-from" id="rFrom"></div>
+    </div>
+    <div class="open-screen" id="openScreen">
+      <div class="open-header">
+        <div class="pkg-title" id="oTitle"></div>
+        <div class="pkg-msg" id="oMsg"></div>
+      </div>
+      <div id="floatyHost"></div>
+    </div>
+  </div>
+  <footer class="hint" id="recipientFooter" hidden>
+    <span class="hint-credit">created by <a href="https://littleweb.world" target="_blank" rel="noopener noreferrer">@littlewebworld</a></span>
+  </footer>
+</div>
 
-      ${item.type === 'TEXT' || item.type === 'CUSTOM' ? `
-      <div class="admin-field"><label>Text / note ${item.type === 'CUSTOM' ? '(one line per bullet point)' : ''}</label>
-        <textarea data-field="text" data-idx="${idx}">${escapeHtml(Array.isArray(item.text) ? item.text.join('\n') : (item.text || ''))}</textarea>
-      </div>` : ''}
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-card" id="modalCard">
+    <button class="modal-close" id="modalClose" type="button">&#10005;</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
 
-      ${item.type === 'LINK' || item.type === 'DOWNLOAD' || item.type === 'CUSTOM' ? `
-      <div class="admin-field"><label>Link URL</label><input data-field="link" data-idx="${idx}" value="${escapeHtml(item.link || '')}"></div>
-      <div class="admin-field"><label>Button label</label><input data-field="buttonLabel" data-idx="${idx}" value="${escapeHtml(item.buttonLabel || '')}"></div>` : ''}
+<div class="modal-backdrop" id="itemFormBackdrop">
+  <div class="modal-card modal-card--form" id="itemFormCard" role="dialog" aria-modal="true" aria-labelledby="itemFormTitle">
+    <button class="modal-close" id="itemFormClose" type="button" aria-label="Close">&#10005;</button>
+    <h3 class="item-form-title" id="itemFormTitle"></h3>
+    <div id="itemFormHost"></div>
+  </div>
+</div>
 
-      ${item.type === 'DOWNLOAD' ? `
-      <div class="admin-field"><label><input type="checkbox" style="width:auto;" data-field="downloadable" data-idx="${idx}" ${item.downloadable ? 'checked' : ''}> Force download</label></div>` : ''}
+<div class="modal-backdrop" id="shareSuccessBackdrop" hidden>
+  <div class="modal-card modal-card--share-success" id="shareSuccessCard" role="dialog" aria-modal="true" aria-labelledby="shareSuccessTitle">
+    <button class="modal-close" id="shareSuccessClose" type="button" aria-label="Close">&#10005;</button>
+    <p class="share-success-eyebrow">link ready</p>
+    <h3 class="share-success-title" id="shareSuccessTitle">Your package is ready to send</h3>
+    <p class="share-success-copy">Copy and save this link, then text it, email it, or share it however you like:</p>
+    <label class="share-success-label" for="shareSuccessLink">Their package link</label>
+    <div class="share-success-link-row">
+      <input type="text" id="shareSuccessLink" readonly />
+      <button id="shareSuccessCopy" type="button">Copy link</button>
+    </div>
+    <p class="share-success-copied" id="shareSuccessCopied" hidden>Copied — go send it!</p>
+    <button id="shareSuccessHome" type="button">Return to home</button>
+  </div>
+</div>
 
-      ${item.type === 'PHOTOCARD_SET' ? `
-      <div class="admin-field"><label>Photocard image URLs (one per line)</label>
-        <textarea data-field="photocards" data-idx="${idx}">${(item.photocards || []).join('\n')}</textarea>
-      </div>` : ''}
-    `;
-    holder.appendChild(block);
-  });
-
-  holder.querySelectorAll('[data-remove]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      currentData.items.splice(parseInt(btn.getAttribute('data-remove'), 10), 1);
-      renderAdminItems();
-    });
-  });
-  holder.querySelectorAll('[data-move]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = parseInt(btn.getAttribute('data-idx'), 10);
-      const dir = parseInt(btn.getAttribute('data-move'), 10);
-      const target = idx + dir;
-      if (target < 0 || target >= currentData.items.length) return;
-      const tmp = currentData.items[idx];
-      currentData.items[idx] = currentData.items[target];
-      currentData.items[target] = tmp;
-      renderAdminItems();
-    });
-  });
-  holder.querySelectorAll('select[data-field="type"]').forEach(sel => {
-    sel.addEventListener('change', () => {
-      currentData.items[parseInt(sel.getAttribute('data-idx'), 10)].type = sel.value;
-      renderAdminItems();
-    });
-  });
-}
-
-function applyAdminChanges(){
-  currentData.toName = document.getElementById('f-toName').value;
-  currentData.fromName = document.getElementById('f-fromName').value;
-  currentData.month = document.getElementById('f-month').value;
-  currentData.trackingNumber = document.getElementById('f-tracking').value;
-  currentData.packageId = document.getElementById('f-packageId').value.trim();
-  currentData.driveLink = document.getElementById('f-driveLink').value.trim();
-
-  document.querySelectorAll('#admin-items [data-field]').forEach(el => {
-    const idx = parseInt(el.getAttribute('data-idx'), 10);
-    const field = el.getAttribute('data-field');
-    const item = currentData.items[idx];
-    if (!item) return;
-    if (field === 'downloadable'){
-      item.downloadable = el.checked;
-    } else if (field === 'photocards'){
-      item.photocards = el.value.split('\n').map(s => s.trim()).filter(Boolean);
-    } else if (field === 'text' && item.type === 'CUSTOM'){
-      item.text = el.value.split('\n').map(s => s.trim()).filter(Boolean);
-    } else {
-      item[field] = el.value;
-    }
-  });
-
-  if (currentData.packageId) {
-    const savedPackages = JSON.parse(localStorage.getItem('digiMailPackages') || '{}');
-    savedPackages[currentData.packageId] = currentData;
-    localStorage.setItem('digiMailPackages', JSON.stringify(savedPackages));
-  }
-
-  renderLabel();
-  renderGoodies();
-}
+<script src="/app.js"></script>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
 </script>
+<script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
