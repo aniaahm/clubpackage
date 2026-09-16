@@ -530,8 +530,14 @@ const PACKAGE_DATA = {
   month: "OCTOBER 2026",
   trackingNumber: "9405 5118 9956 1891 2345 67",
 
+  // ---- Google Drive folder link for this package (optional) ----
+  driveLink: "",
+
+  // ---- Unique ID for this package ----
+  packageId: "",
+
   // ---- the goodies inside, in the order they should appear ----
-  // supported "type" values: TEXT, PHOTOCARD_SET, LINK, DOWNLOAD, CUSTOM
+  // supported "type" values: TEXT, PHOTOCARD_SET, LINK, DOWNLOAD, CUSTOM, DRIVE_FOLDER
   items: [
     {
       id: "letter-01",
@@ -598,6 +604,44 @@ const PACKAGE_DATA = {
 let currentData = JSON.parse(JSON.stringify(PACKAGE_DATA));
 
 /* ---------------------------------------------------------------------------
+   PACKAGE ROUTING / UNIQUE ID SYSTEM
+--------------------------------------------------------------------------- */
+function getPackageIdFromUrl() {
+  const hash = window.location.hash.replace('#', '').trim();
+  if (hash) {
+    if (hash.startsWith('package=')) return hash.replace('package=', '');
+    if (hash.startsWith('package/')) return hash.replace('package/', '');
+    return hash;
+  }
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('package')) return params.get('package');
+  return null;
+}
+
+function initPackageData() {
+  const urlPkgId = getPackageIdFromUrl();
+  
+  if (urlPkgId) {
+    const savedPackages = JSON.parse(localStorage.getItem('digiMailPackages') || '{}');
+    if (savedPackages[urlPkgId]) {
+      currentData = savedPackages[urlPkgId];
+    } else {
+      currentData.packageId = urlPkgId;
+    }
+  } else {
+    if (!currentData.packageId) {
+      currentData.packageId = 'pkg-' + Math.random().toString(36).substring(2, 9);
+    }
+  }
+  
+  const savedPackages = JSON.parse(localStorage.getItem('digiMailPackages') || '{}');
+  savedPackages[currentData.packageId] = currentData;
+  localStorage.setItem('digiMailPackages', JSON.stringify(savedPackages));
+}
+
+initPackageData();
+
+/* ---------------------------------------------------------------------------
    LABEL + BARCODE RENDERING
 --------------------------------------------------------------------------- */
 function renderLabel(){
@@ -611,7 +655,6 @@ function renderLabel(){
 }
 
 // Purely decorative barcode built deterministically from the tracking number
-// (not a real scannable code — just for the parcel aesthetic).
 function renderBarcode(str){
   const holder = document.getElementById('barcode-bars');
   holder.innerHTML = '';
@@ -627,12 +670,25 @@ function renderBarcode(str){
 }
 
 /* ---------------------------------------------------------------------------
-   GOODIES GRID RENDERING — dynamic, handles any number of items,
-   and dispatches per item "type".
+   GOODIES GRID RENDERING
 --------------------------------------------------------------------------- */
 function renderGoodies(){
   const grid = document.getElementById('goodies-grid');
   grid.innerHTML = '';
+  
+  if (currentData.driveLink) {
+    const driveCard = document.createElement('article');
+    driveCard.className = 'goodie-card';
+    driveCard.innerHTML = '<div class="card-tape"></div>' + renderItemInner({
+      type: 'DRIVE_FOLDER',
+      title: 'Google Drive Folder',
+      description: 'Access the digital folder for this package.',
+      link: currentData.driveLink,
+      buttonLabel: 'Open Google Drive Folder'
+    });
+    grid.appendChild(driveCard);
+  }
+
   currentData.items.forEach(item => {
     const card = document.createElement('article');
     card.className = 'goodie-card';
@@ -655,6 +711,12 @@ function renderItemInner(item){
   const image = item.image ? '<img class="goodie-image" src="' + item.image + '" alt="">' : '';
 
   switch(item.type){
+
+    case 'DRIVE_FOLDER': {
+      const label = item.buttonLabel || 'Open Google Drive Folder';
+      const btn = item.link ? '<a class="goodie-btn" href="' + item.link + '" target="_blank" rel="noopener">' + escapeHtml(label) + ' ↗</a>' : '';
+      return kicker + title + desc + btn;
+    }
 
     case 'TEXT': {
       const note = item.text ? '<div class="goodie-note">' + escapeHtml(item.text) + '</div>' : '';
@@ -780,14 +842,10 @@ document.getElementById('open-btn').addEventListener('click', playOpeningAnimati
 renderLabel();
 renderGoodies();
 
-
 /* ============================================================================
    SECRET ADMIN DOOR
-   Click the small invisible spot in the bottom-right corner of the page
-   5 times in a row (within 2.5 seconds) to open the admin panel.
-   Default passcode is set below — change ADMIN_PASSCODE to whatever you like.
    ============================================================================ */
-const ADMIN_PASSCODE = "digimail"; // <- change this to your own secret word
+const ADMIN_PASSCODE = "digimail";
 
 let doorClicks = 0;
 let doorTimer = null;
@@ -800,7 +858,6 @@ document.getElementById('admin-trigger').addEventListener('click', () => {
     openAdminGate();
   }
 });
-// Keyboard shortcut for desktop convenience: Ctrl+Shift+A
 document.addEventListener('keydown', e => {
   if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') openAdminGate();
 });
@@ -812,7 +869,7 @@ function openAdminGate(){
       <h2>psst — admin only</h2>
       <p style="font-size:0.85rem;">enter the passcode to edit this month's package</p>
       <div class="admin-field" style="max-width:220px; margin:0 auto;">
-        <input type="password" id="admin-passcode-input" placeholder="passcode">
+        <input type="pondphuwinismylife" id="admin-passcode-input" placeholder="passcode">
       </div>
       <div class="admin-row" style="justify-content:center;">
         <button class="admin-btn primary" id="admin-unlock-btn">Unlock</button>
@@ -843,9 +900,7 @@ function tryUnlock(){
 }
 
 /* ---------------------------------------------------------------------------
-   ADMIN EDITOR — lets you edit label info + every item, live-preview it,
-   save a draft to this browser, and export the finished PACKAGE_DATA code
-   to paste back into this file for the next member.
+   ADMIN EDITOR
 --------------------------------------------------------------------------- */
 const ITEM_TYPES = ['TEXT','PHOTOCARD_SET','LINK','DOWNLOAD','CUSTOM'];
 
@@ -854,11 +909,13 @@ function renderAdminEditor(){
   panel.innerHTML = `
     <h2>admin — edit this month's mail</h2>
 
-    <h3>shipping label</h3>
+    <h3>shipping label & package info</h3>
     <div class="admin-field"><label>To</label><input id="f-toName"></div>
     <div class="admin-field"><label>From</label><input id="f-fromName"></div>
     <div class="admin-field"><label>Month / Year</label><input id="f-month"></div>
     <div class="admin-field"><label>Tracking number</label><input id="f-tracking"></div>
+    <div class="admin-field"><label>Package Unique ID</label><input id="f-packageId" placeholder="e.g. september-mail"></div>
+    <div class="admin-field"><label>Google Drive Folder Link</label><input id="f-driveLink" placeholder="https://drive.google.com/drive/folders/..."></div>
 
     <h3>items</h3>
     <div id="admin-items"></div>
@@ -866,6 +923,7 @@ function renderAdminEditor(){
 
     <div class="admin-row">
       <button class="admin-btn primary" id="apply-btn">Apply &amp; preview</button>
+      <button class="admin-btn primary" id="copy-package-link-btn" style="background:#C84B31; border-color:#C84B31;">Copy Package Link</button>
       <button class="admin-btn" id="save-draft-btn">Save draft to this browser</button>
       <button class="admin-btn" id="load-draft-btn">Load saved draft</button>
       <button class="admin-btn" id="export-btn">Export code</button>
@@ -878,6 +936,8 @@ function renderAdminEditor(){
   document.getElementById('f-fromName').value = currentData.fromName;
   document.getElementById('f-month').value = currentData.month;
   document.getElementById('f-tracking').value = currentData.trackingNumber;
+  document.getElementById('f-packageId').value = currentData.packageId || '';
+  document.getElementById('f-driveLink').value = currentData.driveLink || '';
 
   renderAdminItems();
 
@@ -886,6 +946,27 @@ function renderAdminEditor(){
     renderAdminItems();
   });
   document.getElementById('apply-btn').addEventListener('click', applyAdminChanges);
+  
+  document.getElementById('copy-package-link-btn').addEventListener('click', () => {
+    applyAdminChanges();
+    const pkgId = currentData.packageId || 'pkg-' + Math.random().toString(36).substring(2, 9);
+    currentData.packageId = pkgId;
+    document.getElementById('f-packageId').value = pkgId;
+    
+    const savedPackages = JSON.parse(localStorage.getItem('digiMailPackages') || '{}');
+    savedPackages[pkgId] = currentData;
+    localStorage.setItem('digiMailPackages', JSON.stringify(savedPackages));
+    
+    const baseUrl = window.location.origin + window.location.pathname;
+    const packageUrl = baseUrl + '#package=' + encodeURIComponent(pkgId);
+    
+    navigator.clipboard.writeText(packageUrl).then(() => {
+      alert('Package link copied to clipboard!\n\n' + packageUrl);
+    }).catch(() => {
+      prompt('Copy your package link:', packageUrl);
+    });
+  });
+
   document.getElementById('save-draft-btn').addEventListener('click', () => {
     applyAdminChanges();
     localStorage.setItem('digiMailDraft', JSON.stringify(currentData));
@@ -937,7 +1018,7 @@ function renderAdminItems(){
 
       ${item.type === 'TEXT' || item.type === 'CUSTOM' ? `
       <div class="admin-field"><label>Text / note ${item.type === 'CUSTOM' ? '(one line per bullet point)' : ''}</label>
-        <textarea data-field="text" data-idx="${idx}">${escapeHtml(Array.isArray(item.text) ? item.text.join('\\n') : (item.text || ''))}</textarea>
+        <textarea data-field="text" data-idx="${idx}">${escapeHtml(Array.isArray(item.text) ? item.text.join('\n') : (item.text || ''))}</textarea>
       </div>` : ''}
 
       ${item.type === 'LINK' || item.type === 'DOWNLOAD' || item.type === 'CUSTOM' ? `
@@ -949,7 +1030,7 @@ function renderAdminItems(){
 
       ${item.type === 'PHOTOCARD_SET' ? `
       <div class="admin-field"><label>Photocard image URLs (one per line)</label>
-        <textarea data-field="photocards" data-idx="${idx}">${(item.photocards || []).join('\\n')}</textarea>
+        <textarea data-field="photocards" data-idx="${idx}">${(item.photocards || []).join('\n')}</textarea>
       </div>` : ''}
     `;
     holder.appendChild(block);
@@ -986,6 +1067,8 @@ function applyAdminChanges(){
   currentData.fromName = document.getElementById('f-fromName').value;
   currentData.month = document.getElementById('f-month').value;
   currentData.trackingNumber = document.getElementById('f-tracking').value;
+  currentData.packageId = document.getElementById('f-packageId').value.trim();
+  currentData.driveLink = document.getElementById('f-driveLink').value.trim();
 
   document.querySelectorAll('#admin-items [data-field]').forEach(el => {
     const idx = parseInt(el.getAttribute('data-idx'), 10);
@@ -1002,6 +1085,12 @@ function applyAdminChanges(){
       item[field] = el.value;
     }
   });
+
+  if (currentData.packageId) {
+    const savedPackages = JSON.parse(localStorage.getItem('digiMailPackages') || '{}');
+    savedPackages[currentData.packageId] = currentData;
+    localStorage.setItem('digiMailPackages', JSON.stringify(savedPackages));
+  }
 
   renderLabel();
   renderGoodies();
